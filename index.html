@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pragya's Notepad</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #1e1e1e;
+      --surface: #252526;
+      --bar: #2d2d2d;
+      --border: #3e3e3e;
+      --text: #d4d4d4;
+      --text-dim: #858585;
+      --accent: #4fc3f7;
+      --accent2: #81c784;
+      --danger: #ef5350;
+      --warn: #ffb74d;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-ui: 'Inter', sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-ui);
+      overflow: hidden;
+    }
+
+    /* ── TOP BAR ── */
+    #topbar {
+      height: 44px;
+      background: var(--bar);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      flex-shrink: 0;
+      user-select: none;
+    }
+
+    .bar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .bar-logo {
+      width: 22px; height: 22px;
+      background: var(--accent);
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: #1e1e1e;
+    }
+
+    .bar-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.02em;
+    }
+
+    .bar-title span { color: var(--accent); }
+
+    .bar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Status pill */
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      transition: all 0.3s;
+      flex-shrink: 0;
+    }
+    .dot.live   { background: var(--accent2); box-shadow: 0 0 6px var(--accent2); }
+    .dot.saving { background: var(--warn); animation: blink 0.7s infinite; }
+    .dot.error  { background: var(--danger); }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+    /* Buttons */
+    .bar-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--text-dim);
+      font-family: var(--font-ui);
+      font-size: 11px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .bar-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .bar-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* ── LAYOUT ── */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    #editor-wrap {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Line numbers + editor side by side */
+    #editor-inner {
+      display: flex;
+      height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scroll-behavior: smooth;
+    }
+
+    /* Custom scrollbar */
+    #editor-inner::-webkit-scrollbar { width: 8px; }
+    #editor-inner::-webkit-scrollbar-track { background: var(--bg); }
+    #editor-inner::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    #editor-inner::-webkit-scrollbar-thumb:hover { background: #555; }
+
+    /* Line numbers */
+    #line-nums {
+      min-width: 52px;
+      padding: 20px 0;
+      background: var(--bg);
+      border-right: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 24px;
+      color: var(--text-dim);
+      text-align: right;
+      padding-right: 12px;
+      padding-left: 8px;
+      flex-shrink: 0;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .ln { display: block; }
+    .ln.active { color: var(--text); }
+
+    /* The actual textarea */
+    #editor {
+      flex: 1;
+      padding: 20px 40px 200px 20px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      line-height: 24px;
+      border: none;
+      outline: none;
+      resize: none;
+      caret-color: var(--accent);
+      white-space: pre-wrap;
+      word-break: break-word;
+      tab-size: 2;
+      min-height: 100%;
+    }
+
+    #editor::selection { background: rgba(79, 195, 247, 0.25); }
+
+    /* ── BOTTOM BAR ── */
+    #bottombar {
+      height: 26px;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      flex-shrink: 0;
+    }
+
+    .bb-item {
+      font-size: 11px;
+      color: #1e1e1e;
+      font-weight: 500;
+      display: flex; align-items: center; gap: 5px;
+    }
+
+    /* ── LOGIN OVERLAY ── */
+    #login-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    #login-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 40px 36px 32px;
+      width: 340px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    }
+
+    .login-logo {
+      width: 48px; height: 48px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      margin: 0 auto 18px;
+    }
+
+    #login-box h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    #login-box p {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      margin-bottom: 28px;
+    }
+
+    .input-row {
+      position: relative;
+      margin-bottom: 14px;
+    }
+
+    #pwd-input {
+      width: 100%;
+      padding: 11px 40px 11px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      letter-spacing: 0.08em;
+    }
+    #pwd-input:focus { border-color: var(--accent); }
+
+    #toggle-pwd {
+      position: absolute; right: 12px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none;
+      cursor: pointer; color: var(--text-dim); font-size: 14px;
+    }
+
+    #login-btn {
+      width: 100%;
+      padding: 11px;
+      background: var(--accent);
+      color: #1e1e1e;
+      border: none;
+      border-radius: 6px;
+      font-family: var(--font-ui);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      letter-spacing: 0.03em;
+    }
+    #login-btn:hover { opacity: 0.9; }
+    #login-btn:active { transform: scale(0.98); }
+
+    #login-error {
+      margin-top: 12px;
+      color: var(--danger);
+      font-size: 12px;
+      min-height: 16px;
+    }
+
+    /* ── FIND BAR ── */
+    #find-bar {
+      display: none;
+      position: absolute;
+      top: 10px; right: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      z-index: 10;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+
+    #find-input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 4px 8px;
+      outline: none; width: 180px;
+    }
+    #find-input:focus { border-color: var(--accent); }
+
+    @media (max-width: 600px) {
+      #editor { font-size: 13px; padding: 16px 16px 200px 14px; }
+      #line-nums { min-width: 38px; font-size: 11px; padding-right: 8px; }
+      .bar-title { font-size: 12px; }
+      #login-box { width: 90%; padding: 32px 24px 28px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div class="bar-left">
+      <div class="bar-logo">P</div>
+      <div class="bar-title">pragya<span>.notepad</span></div>
+    </div>
+    <div class="bar-right">
+      <div class="status-pill">
+        <div class="dot" id="status-dot"></div>
+        <span id="status-text">connecting…</span>
+      </div>
+      <button class="bar-btn danger" onclick="clearNote()">⊘ Clear</button>
+      <button class="bar-btn" onclick="copyAll()">⧉ Copy all</button>
+      <button class="bar-btn" onclick="logout()">⏏ Lock</button>
+    </div>
+  </div>
+
+  <!-- EDITOR -->
+  <div id="editor-wrap">
+    <div id="editor-inner">
+      <div id="line-nums"><span class="ln">1</span></div>
+      <textarea id="editor" spellcheck="true" placeholder="// Start typing…&#10;// Changes sync live across all your devices.&#10;// No limits. No expiry. Just type."></textarea>
+    </div>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div id="bottombar">
+    <div class="bb-item">📄 <span id="bb-lines">1 line</span></div>
+    <div class="bb-item"><span id="bb-chars">0 chars</span></div>
+    <div class="bb-item"><span id="bb-saved"></span></div>
+    <div class="bb-item">UTF-8 · Plain Text</div>
+  </div>
+</div>
+
+<!-- LOGIN OVERLAY -->
+<div id="login-overlay">
+  <div id="login-box">
+    <div class="login-logo">📝</div>
+    <h2>pragya.notepad</h2>
+    <p>Enter password to unlock</p>
+    <div class="input-row">
+      <input id="pwd-input" type="password" placeholder="password" autocomplete="current-password"/>
+      <button id="toggle-pwd" onclick="togglePwd()">👁</button>
+    </div>
+    <button id="login-btn" onclick="login()">Unlock →</button>
+    <div id="login-error"></div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAsU_kZdY_BTpifrGTrp0A4yCLYM-o99Fw",
+    authDomain: "pragya-notepad.firebaseapp.com",
+    projectId: "pragya-notepad",
+    storageBucket: "pragya-notepad.firebasestorage.app",
+    messagingSenderId: "937492648989",
+    appId: "1:937492648989:web:807354c9cd9133d4ebe2f4",
+    measurementId: "G-5W7W1GWYRX",
+    databaseURL: "https://pragya-notepad-default-rtdb.firebaseio.com"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+  const noteRef = ref(db, 'pragya/note');
+
+  const PASSWORD = "pro9204";
+  let saveTimer = null;
+  let isRemote  = false;
+
+  // ── LOGIN ──
+  window.login = () => {
+    if (document.getElementById('pwd-input').value === PASSWORD) {
+      document.getElementById('login-overlay').style.display = 'none';
+      document.getElementById('login-error').textContent = '';
+      initEditor();
+    } else {
+      document.getElementById('login-error').textContent = '✗ Incorrect password';
+      document.getElementById('pwd-input').value = '';
+      document.getElementById('pwd-input').focus();
+    }
+  };
+
+  window.logout = () => {
+    document.getElementById('login-overlay').style.display = 'flex';
+    document.getElementById('pwd-input').value = '';
+  };
+
+  window.togglePwd = () => {
+    const i = document.getElementById('pwd-input');
+    i.type = i.type === 'password' ? 'text' : 'password';
+  };
+
+  document.getElementById('pwd-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') window.login();
+  });
+
+  // ── EDITOR ──
+  function initEditor() {
+    const editor   = document.getElementById('editor');
+    const dot      = document.getElementById('status-dot');
+    const stText   = document.getElementById('status-text');
+    const lineNums = document.getElementById('line-nums');
+
+    // Remote sync
+    onValue(noteRef, snap => {
+      dot.className = 'dot live';
+      stText.textContent = 'live';
+      const val = snap.val() || '';
+      if (val !== editor.value) {
+        isRemote = true;
+        const sel = [editor.selectionStart, editor.selectionEnd];
+        editor.value = val;
+        editor.selectionStart = sel[0];
+        editor.selectionEnd   = sel[1];
+        isRemote = false;
+      }
+      updateMeta();
+      renderLineNums();
+    });
+
+    // Local typing
+    editor.addEventListener('input', () => {
+      if (isRemote) return;
+      dot.className = 'dot saving';
+      stText.textContent = 'saving…';
+      updateMeta();
+      renderLineNums();
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        set(noteRef, editor.value).then(() => {
+          dot.className = 'dot live';
+          stText.textContent = 'saved ✓';
+          document.getElementById('bb-saved').textContent =
+            'Saved ' + new Date().toLocaleTimeString();
+          setTimeout(() => stText.textContent = 'live', 2000);
+        }).catch(() => {
+          dot.className = 'dot error';
+          stText.textContent = 'error';
+        });
+      }, 500);
+    });
+
+    editor.addEventListener('keydown', e => {
+      // Tab → insert spaces
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const s = editor.selectionStart;
+        editor.value = editor.value.slice(0,s) + '  ' + editor.value.slice(editor.selectionEnd);
+        editor.selectionStart = editor.selectionEnd = s + 2;
+        editor.dispatchEvent(new Event('input'));
+      }
+    });
+
+    // Update line highlight on cursor move
+    editor.addEventListener('keyup', renderLineNums);
+    editor.addEventListener('click', renderLineNums);
+
+    editor.focus();
+  }
+
+  function renderLineNums() {
+    const editor   = document.getElementById('editor');
+    const lineNums = document.getElementById('line-nums');
+    const lines    = (editor.value + '\n').split('\n');
+    const curLine  = editor.value.slice(0, editor.selectionStart).split('\n').length;
+    lineNums.innerHTML = lines.map((_, i) =>
+      `<span class="ln${i+1===curLine?' active':''}">${i+1}</span>`
+    ).join('');
+  }
+
+  function updateMeta() {
+    const v = document.getElementById('editor').value;
+    const lines = v.split('\n').length;
+    document.getElementById('bb-lines').textContent = lines + (lines===1?' line':' lines');
+    document.getElementById('bb-chars').textContent = v.length.toLocaleString() + ' chars';
+  }
+
+  window.clearNote = () => {
+    if (confirm('Clear everything? This clears it for all devices.')) {
+      document.getElementById('editor').value = '';
+      set(noteRef, '');
+      updateMeta();
+      renderLineNums();
+    }
+  };
+
+  window.copyAll = () => {
+    navigator.clipboard.writeText(document.getElementById('editor').value)
+      .then(() => {
+        document.getElementById('status-text').textContent = 'copied!';
+        setTimeout(() => document.getElementById('status-text').textContent = 'live', 1500);
+      });
+  };
+</script>
+</body>
+</html>
